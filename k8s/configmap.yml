@@ -1,0 +1,12 @@
+# k8s/configmap.yml
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: production
+data:
+  log_level: "info"
+  node_env: "production"
+  app_name: "sample-microservice"
+  metrics_enabled: "true"

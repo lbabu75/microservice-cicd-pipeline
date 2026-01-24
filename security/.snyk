@@ -1,0 +1,237 @@
+# .snyk
+# Snyk configuration file
+
+# Language settings
+language-settings:
+  node:
+    packageManager: npm
+
+# Vulnerability settings
+vulnSettings:
+  severityThreshold: medium
+  failOn: upgradable
+
+# Ignore specific vulnerabilities (with justification)
+ignore:
+  # Example:
+  # 'SNYK-JS-LODASH-12345':
+  #   - '*':
+  #       reason: 'No upgrade available, mitigated by WAF'
+  #       expires: '2024-12-31'
+
+# Test settings
+test:
+  monitor: true
+  prune-repeated-subdependencies: true
+
+---
+# sonar-project.properties
+# SonarQube configuration
+
+sonar.projectKey=sample-microservice
+sonar.projectName=Sample Microservice
+sonar.projectVersion=1.0
+
+# Source code
+sonar.sources=app
+sonar.tests=tests
+sonar.sourceEncoding=UTF-8
+
+# JavaScript specific
+sonar.javascript.lcov.reportPaths=coverage/lcov.info
+sonar.testExecutionReportPaths=test-results/sonar-report.xml
+
+# Code coverage
+sonar.coverage.exclusions=tests/**,**/*.test.js
+
+# Quality gates
+sonar.qualitygate.wait=true
+
+# Duplications
+sonar.cpd.exclusions=**/*.test.js
+
+---
+# .trivyignore
+# Trivy vulnerability scanner ignore file
+
+# Ignore specific vulnerabilities with justification
+# Format: CVE-XXXX-XXXXX
+
+# Example:
+# CVE-2021-12345
+# Reason: Fixed in next major version, workaround implemented
+
+---
+# security/policy-as-code.rego
+# OPA (Open Policy Agent) policy for Kubernetes
+
+package kubernetes.admission
+
+deny[msg] {
+    input.request.kind.kind == "Pod"
+    container := input.request.object.spec.containers[_]
+    not container.securityContext.runAsNonRoot
+    msg := sprintf("Container '%s' must run as non-root user", [container.name])
+}
+
+deny[msg] {
+    input.request.kind.kind == "Pod"
+    container := input.request.object.spec.containers[_]
+    container.securityContext.privileged
+    msg := sprintf("Container '%s' cannot run in privileged mode", [container.name])
+}
+
+deny[msg] {
+    input.request.kind.kind == "Pod"
+    container := input.request.object.spec.containers[_]
+    not container.resources.limits.memory
+    msg := sprintf("Container '%s' must have memory limits", [container.name])
+}
+
+deny[msg] {
+    input.request.kind.kind == "Pod"
+    container := input.request.object.spec.containers[_]
+    not container.resources.limits.cpu
+    msg := sprintf("Container '%s' must have CPU limits", [container.name])
+}
+
+deny[msg] {
+    input.request.kind.kind == "Pod"
+    not input.request.object.spec.securityContext.runAsNonRoot
+    msg := "Pod must run as non-root user"
+}
+
+---
+# security/network-policy.yml
+# Kubernetes Network Policy for microsegmentation
+
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: sample-microservice-netpol
+  namespace: production
+spec:
+  podSelector:
+    matchLabels:
+      app: sample-microservice
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  # Allow from ingress controller
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: ingress-nginx
+    ports:
+    - protocol: TCP
+      port: 3000
+  # Allow from Prometheus
+  - from:
+    - namespaceSelector:
+        matchLabels:
+          name: monitoring
+      podSelector:
+        matchLabels:
+          app: prometheus
+    ports:
+    - protocol: TCP
+      port: 3000
+  egress:
+  # Allow DNS
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: kube-system
+      podSelector:
+        matchLabels:
+          k8s-app: kube-dns
+    ports:
+    - protocol: UDP
+      port: 53
+  # Allow external HTTPS
+  - to:
+    - namespaceSelector: {}
+    ports:
+    - protocol: TCP
+      port: 443
+  # Allow database access (example)
+  - to:
+    - namespaceSelector:
+        matchLabels:
+          name: database
+    ports:
+    - protocol: TCP
+      port: 5432
+
+---
+# security/pod-security-policy.yml
+# Note: PSP is deprecated, use Pod Security Standards instead
+
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: restricted
+  annotations:
+    seccomp.security.alpha.kubernetes.io/allowedProfileNames: 'runtime/default'
+    apparmor.security.beta.kubernetes.io/allowedProfileNames: 'runtime/default'
+spec:
+  privileged: false
+  allowPrivilegeEscalation: false
+  requiredDropCapabilities:
+    - ALL
+  volumes:
+    - 'configMap'
+    - 'emptyDir'
+    - 'projected'
+    - 'secret'
+    - 'downwardAPI'
+    - 'persistentVolumeClaim'
+  hostNetwork: false
+  hostIPC: false
+  hostPID: false
+  runAsUser:
+    rule: 'MustRunAsNonRoot'
+  seLinux:
+    rule: 'RunAsAny'
+  fsGroup:
+    rule: 'RunAsAny'
+  readOnlyRootFilesystem: true
+
+---
+# .gitleaks.toml
+# GitLeaks secret scanning configuration
+
+title = "Gitleaks Configuration"
+
+[[rules]]
+id = "aws-access-key"
+description = "AWS Access Key"
+regex = '''(A3T[A-Z0-9]|AKIA|AGPA|AIDA|AROA|AIPA|ANPA|ANVA|ASIA)[A-Z0-9]{16}'''
+
+[[rules]]
+id = "aws-secret-key"
+description = "AWS Secret Key"
+regex = '''(?i)aws(.{0,20})?(?-i)['\"][0-9a-zA-Z\/+]{40}['\"]'''
+
+[[rules]]
+id = "generic-api-key"
+description = "Generic API Key"
+regex = '''(?i)(api[_-]?key|apikey)(.{0,20})?['\"][0-9a-zA-Z]{32,45}['\"]'''
+
+[[rules]]
+id = "slack-webhook"
+description = "Slack Webhook"
+regex = '''https://hooks.slack.com/services/[A-Za-z0-9+/]{44,46}'''
+
+[[rules]]
+id = "private-key"
+description = "Private Key"
+regex = '''-----BEGIN (RSA|DSA|EC|OPENSSH) PRIVATE KEY-----'''
+
+[allowlist]
+description = "Allowlisted files"
+paths = [
+  '''\.md$''',
+  '''\.example$''',
+]
