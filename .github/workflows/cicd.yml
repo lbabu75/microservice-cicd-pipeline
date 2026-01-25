@@ -9,16 +9,16 @@ on:
     branches: [main, develop]
 
 env:
-  AWS_REGION: us-east-1
-  EKS_CLUSTER_NAME: microservice-cluster
-  ECR_REPOSITORY: sample-microservice-repository
-  APP_NAME: sample-microservice
+  REGISTRY: ${{ secrets.REGISTRY_URL }}
+  IMAGE_NAME: microservice-app
+  K8S_NAMESPACE_PROD: production
+  K8S_NAMESPACE_STAGING: staging
 
 jobs:
   # Security Scanning and Code Quality
   security-scan:
     name: Security & Code Quality
-    runs-on: ubuntu-latest
+    runs-on: jen2
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -66,7 +66,7 @@ jobs:
   # Unit and Integration Tests
   test:
     name: Run Tests
-    runs-on: ubuntu-latest
+    runs-on: jen2
     needs: security-scan
     steps:
       - name: Checkout code
@@ -97,7 +97,7 @@ jobs:
   # Build and Push Docker Image
   build-and-push:
     name: Build & Push Docker Image
-    runs-on: ubuntu-latest
+    runs-on: jen2
     needs: test
     if: github.event_name == 'push'
     outputs:
@@ -107,22 +107,21 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Registry
+        uses: docker/login-action@v3
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
 
-      - name: Login to Amazon ECR
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v2
-
-      - name: Extract metadata for Docker
+      - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
             type=ref,event=branch
             type=ref,event=pr
@@ -131,34 +130,47 @@ jobs:
             type=sha,prefix={{branch}}-
             type=raw,value=latest,enable={{is_default_branch}}
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build and push Docker image
+      - name: Build and push
         id: build
         uses: docker/build-push-action@v5
         with:
-          context: ./app
+          context: .
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          platforms: linux/amd64
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
+          build-args: |
+            BUILD_DATE=${{ steps.meta.outputs.created }}
+            VCS_REF=${{ github.sha }}
+            VERSION=${{ steps.meta.outputs.version }}
 
+  # Job 4: Container Security Scan
+  container-scan:
+    name: Scan Container for Vulnerabilities
+    runs-on: [self-hosted, oci, build]
+    needs: build
+    steps:
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+          image-ref: ${{ needs.build.outputs.image-tag }}
           format: 'sarif'
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
 
-      - name: Upload Trivy scan results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v2
-        if: always()
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: 'trivy-results.sarif'
+
+      - name: Run Trivy in table format
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ needs.build.outputs.image-tag }}
+          format: 'table'
+          exit-code: '0'
+          severity: 'CRITICAL,HIGH'
 
       - name: Sign container image with Cosign
         env:
@@ -170,31 +182,20 @@ jobs:
             ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}@${{ steps.build.outputs.digest }}
           rm -f cosign.key
 
-  # Deploy to EKS
+  # Deploy to K3s
   deploy:
-    name: Deploy to EKS
-    runs-on: ubuntu-latest
+    name: Deploy to K3s
+    runs-on: jen2
     needs: build-and-push
     if: github.ref == 'refs/heads/main'
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Update kubeconfig
+      - name: Set up kubectl
         run: |
-          aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER_NAME }} --region ${{ env.AWS_REGION }}
-
-      - name: Install kubectl
-        uses: azure/setup-kubectl@v3
-        with:
-          version: 'v1.28.0'
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBECONFIG }}" | base64 -d > $HOME/.kube/config
 
       - name: Deploy to Kubernetes
         run: |
@@ -233,37 +234,12 @@ jobs:
   # Rollback on Failure
   rollback:
     name: Rollback on Failure
-    runs-on: ubuntu-latest
+    runs-on: jen2
     needs: deploy
     if: failure()
     steps:
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Update kubeconfig
-        run: |
-          aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER_NAME }} --region ${{ env.AWS_REGION }}
-
       - name: Rollback deployment
         run: |
           kubectl rollout undo deployment/${{ env.APP_NAME }} -n production
           kubectl rollout status deployment/${{ env.APP_NAME }} -n production
 
-      - name: Notify team
-        uses: 8398a7/action-slack@v3
-        with:
-          status: custom
-          custom_payload: |
-            {
-              text: '🚨 Deployment failed and was rolled back',
-              attachments: [{
-                color: 'danger',
-                text: `Repository: ${process.env.GITHUB_REPOSITORY}\nBranch: ${process.env.GITHUB_REF}\nCommit: ${process.env.GITHUB_SHA}`
-              }]
-            }
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
