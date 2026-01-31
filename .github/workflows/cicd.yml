@@ -64,6 +64,7 @@ jobs:
           args: >
             -Dsonar.sources=app
             -Dsonar.tests=app/tests
+            -Dsonar.exclusions=app/tests/**
             -Dsonar.javascript.lcov.reportPaths=app/coverage/lcov.info
         continue-on-error: true
 
