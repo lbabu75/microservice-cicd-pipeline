@@ -61,12 +61,18 @@ jobs:
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
         continue-on-error: true
 
-      - name: SAST - Semgrep
-        run: |
-          pip3 install semgrep
-          semgrep --config=auto --json --output=semgrep-report.json . || true
+      - name: Semgrep App Security Scan
+        uses: returntocorp/semgrep-action@v1
+        with:
+          # This generates the file your next step is looking for
+          generateSarif: "semgrep-report.json" 
+          config: >- # Scan for common security issues
+            p/security-audit
+            p/secrets
 
       - name: Upload SAST Report
+        # This ensures the report uploads even if vulnerabilities are found
+        if: always() 
         uses: actions/upload-artifact@v4
         with:
           name: sast-report
