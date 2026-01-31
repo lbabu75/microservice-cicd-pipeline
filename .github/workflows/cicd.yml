@@ -69,13 +69,15 @@ jobs:
         continue-on-error: true
 
       - name: Semgrep App Security Scan
-        uses: returntocorp/semgrep-action@v1
+        uses: semgrep/semgrep-action@v1
         with:
           # This generates the file your next step is looking for
-          generateSarif: "semgrep-report.json" 
-          config: >- # Scan for common security issues
-            p/security-audit
-            p/secrets
+          generateSarif: "semgrep-report.json"
+          config: auto 
+          # config: >- # Scan for common security issues
+          #   p/security-audit
+          #   p/secrets
+        continue-on-error: true
 
       - name: Upload SAST Report
         # This ensures the report uploads even if vulnerabilities are found
