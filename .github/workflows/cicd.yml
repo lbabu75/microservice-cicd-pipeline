@@ -17,7 +17,7 @@ env:
 jobs:
   # Security Scanning and Code Quality
   security-scan:
-    name: Security & Code Quality
+    name: Code Security & Quality
     runs-on: jen2
     steps:
       - name: Checkout code
@@ -148,13 +148,13 @@ jobs:
   # Job 4: Container Security Scan
   container-scan:
     name: Scan Container for Vulnerabilities
-    runs-on: [self-hosted, oci, build]
-    needs: build
+    runs-on: jen2
+    needs: build-and-push
     steps:
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ needs.build.outputs.image-tag }}
+          image-ref: ${{ needs.build-and-push.outputs.image-tag }}
           format: 'sarif'
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
@@ -167,20 +167,20 @@ jobs:
       - name: Run Trivy in table format
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ needs.build.outputs.image-tag }}
+          image-ref: ${{ needs.build-and-push.outputs.image-tag }}
           format: 'table'
           exit-code: '0'
           severity: 'CRITICAL,HIGH'
 
-      - name: Sign container image with Cosign
-        env:
-          COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
-          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
-        run: |
-          echo "${COSIGN_PRIVATE_KEY}" > cosign.key
-          cosign sign --key cosign.key \
-            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}@${{ steps.build.outputs.digest }}
-          rm -f cosign.key
+      # - name: Sign container image with Cosign
+      #   env:
+      #     COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+      #     COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
+      #   run: |
+      #     echo "${COSIGN_PRIVATE_KEY}" > cosign.key
+      #     cosign sign --key cosign.key \
+      #       ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}@${{ steps.build.outputs.digest }}
+      #     rm -f cosign.key
 
   # Deploy to K3s
   deploy:
