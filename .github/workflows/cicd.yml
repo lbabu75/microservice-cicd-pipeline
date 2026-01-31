@@ -69,7 +69,7 @@ jobs:
         continue-on-error: true
 
       - name: Semgrep App Security Scan
-        uses: semgrep/semgrep@v1.150.0-nonroot
+        uses: semgrep/semgrep@1.150.0-nonroot
         with:
           # This generates the file your next step is looking for
           generateSarif: "semgrep-report.json"
