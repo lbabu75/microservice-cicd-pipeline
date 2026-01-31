@@ -1,5 +1,8 @@
 // tests/integration/api.integration.test.js
 
+const request = require('supertest');
+const app = require('../../server'); // Use the fixed path below
+
 describe('Integration Tests', () => {
   beforeAll(async () => {
     // Setup test database or mock services
