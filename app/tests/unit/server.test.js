@@ -1,7 +1,7 @@
 // tests/unit/server.test.js
 
 const request = require('supertest');
-const app = require('../../app/server');
+const app = require('../../server');
 
 describe('Sample Microservice API', () => {
   
