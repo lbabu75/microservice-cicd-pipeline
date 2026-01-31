@@ -77,25 +77,38 @@ app.get('/metrics', async (req, res) => {
   res.end(await register.metrics());
 });
 
-// Sample API endpoints
+// 1. Add a simple in-memory data store at the top of the file
+const users = [
+  { id: 1, name: 'John Doe', email: 'john@example.com' },
+  { id: 2, name: 'Jane Smith', email: 'jane@example.com' }
+];
+
+// 2. Update GET all users
 app.get('/api/users', (req, res) => {
-  const users = [
-    { id: 1, name: 'John Doe', email: 'john@example.com' },
-    { id: 2, name: 'Jane Smith', email: 'jane@example.com' }
-  ];
   res.json(users);
 });
 
+// 3. Update GET user by ID
 app.get('/api/users/:id', (req, res) => {
   const userId = parseInt(req.params.id);
-  const user = { id: userId, name: 'Sample User', email: 'user@example.com' };
-  res.json(user);
+  const user = users.find(u => u.id === userId); // Look up the actual user
+  
+  if (user) {
+    res.json(user);
+  } else {
+    res.status(404).json({ error: 'User not found' });
+  }
 });
 
+// 4. Update POST user
 app.post('/api/users', (req, res) => {
-  const newUser = req.body;
+  const newUser = {
+    id: users.length + 1, // Generate a real ID
+    ...req.body
+  };
+  users.push(newUser); // Save it to the array
   logger.info('Creating new user', { user: newUser });
-  res.status(201).json({ id: 3, ...newUser });
+  res.status(201).json(newUser);
 });
 
 // Error handling
