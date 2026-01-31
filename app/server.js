@@ -104,18 +104,26 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Internal server error' });
 });
 
+let server; // 1. Declare server variable in outer scope
+
 // Start server
-const server = app.listen(port, () => {
+if (require.main === module) {
+  server = app.listen(port, () => {
   logger.info(`Server running on port ${port}`);
-});
+  });
+}
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
   logger.info('SIGTERM signal received: closing HTTP server');
+  if (server) { // 3. Check if server exists (it won't exist during tests)
   server.close(() => {
     logger.info('HTTP server closed');
     process.exit(0);
   });
+  } else {
+    process.exit(0);
+  }
 });
 
 module.exports = app;
