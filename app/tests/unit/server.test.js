@@ -43,6 +43,13 @@ describe('Sample Microservice API', () => {
       expect(res.body).toHaveProperty('name');
     });
 
+    // Add to app/tests/unit/server.test.js
+    it('should return 404 for non-existent user', async () => {
+      await request(app)
+        .get('/api/users/999')
+        .expect(404);
+    });
+    
     it('should create new user', async () => {
       const newUser = {
         name: 'Test User',
