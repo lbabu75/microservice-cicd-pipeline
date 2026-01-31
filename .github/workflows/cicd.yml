@@ -68,16 +68,10 @@ jobs:
             -Dsonar.javascript.lcov.reportPaths=app/coverage/lcov.info
         continue-on-error: true
 
-      - name: Semgrep App Security Scan
-        uses: semgrep/semgrep@v1.150.0-nonroot
-        with:
-          # This generates the file your next step is looking for
-          generateSarif: "semgrep-report.json"
-          config: auto 
-          # config: >- # Scan for common security issues
-          #   p/security-audit
-          #   p/secrets
-        continue-on-error: true
+      - name: SAST - Semgrep
+        run: |
+          pip3 install semgrep
+          semgrep --config=auto --json --output=semgrep-report.json . || true
 
       - name: Upload SAST Report
         # This ensures the report uploads even if vulnerabilities are found
