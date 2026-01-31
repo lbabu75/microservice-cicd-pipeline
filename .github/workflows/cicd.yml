@@ -59,6 +59,12 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        with:
+          # Point the scanner directly to your app folder
+          args: >
+            -Dsonar.sources=app
+            -Dsonar.tests=app/tests
+            -Dsonar.javascript.lcov.reportPaths=app/coverage/lcov.info
         continue-on-error: true
 
       - name: Semgrep App Security Scan
