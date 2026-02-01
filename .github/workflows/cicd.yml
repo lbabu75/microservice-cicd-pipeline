@@ -69,9 +69,10 @@ jobs:
         continue-on-error: true
 
       - name: SAST - Semgrep
-        run: |
-          pip3 install semgrep
-          semgrep --config=auto --json --output=semgrep-report.json . || true
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: auto
+          output: semgrep-report.json
 
       - name: Upload SAST Report
         # This ensures the report uploads even if vulnerabilities are found
