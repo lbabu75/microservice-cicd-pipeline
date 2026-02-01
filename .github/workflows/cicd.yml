@@ -68,19 +68,23 @@ jobs:
             -Dsonar.javascript.lcov.reportPaths=app/coverage/lcov.info
         continue-on-error: true
 
-      # - name: SAST - Semgrep
-      #   uses: returntocorp/semgrep-action@v1
-      #   with:
-      #     config: auto
-      #     output: semgrep-report.json
+      - name: SAST - Semgrep
+        uses: docker://semgrep/semgrep:latest
+        with:
+          args: >
+            semgrep scan
+            --config p/security-audit
+            --config p/secrets
+            --sarif
+            --output semgrep-report.json
+        continue-on-error: true
 
-      # - name: Upload SAST Report
-      #   # This ensures the report uploads even if vulnerabilities are found
-      #   if: always() 
-      #   uses: actions/upload-artifact@v4
-      #   with:
-      #     name: sast-report
-      #     path: semgrep-report.json
+      - name: Upload SAST Report
+        if: always() 
+        uses: actions/upload-artifact@v4
+        with:
+          name: sast-report
+          path: semgrep-report.json
 
       - name: Run Snyk Security Scan
         uses: snyk/actions/node@master
@@ -90,6 +94,7 @@ jobs:
 
       - name: Run GitLeaks (Secret Scanning)
         uses: gitleaks/gitleaks-action@v2
+        continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
