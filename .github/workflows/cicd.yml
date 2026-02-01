@@ -66,6 +66,7 @@ jobs:
             -Dsonar.tests=app/tests
             -Dsonar.exclusions=app/tests/**
             -Dsonar.javascript.lcov.reportPaths=app/coverage/lcov.info
+            -Dsonar.testExecutionReportPaths=app/tests/test-report.xml
         continue-on-error: true
 
       - name: SAST - Semgrep
