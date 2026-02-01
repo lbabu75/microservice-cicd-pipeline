@@ -59,16 +59,8 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-        with:
-          # Point the scanner directly to your app folder
-          args: >
-            -Dsonar.sources=app
-            -Dsonar.tests=app/tests
-            -Dsonar.exclusions=app/tests/**
-            -Dsonar.javascript.lcov.reportPaths=app/coverage/lcov.info
-            -Dsonar.testExecutionReportPaths=app/tests/test-report.xml
         continue-on-error: true
-
+        
       - name: SAST - Semgrep
         uses: docker://semgrep/semgrep:latest
         with:
@@ -76,7 +68,8 @@ jobs:
             semgrep scan
             --config p/security-audit
             --config p/secrets
-            --sarif
+            --json
+            --pretty
             --output semgrep-report.json
         continue-on-error: true
 
@@ -90,6 +83,8 @@ jobs:
       - name: Run Snyk Security Scan
         uses: snyk/actions/node@master
         continue-on-error: true
+        with:
+          args: test app k8s terraform --json-file-output=snyk-report.json
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
