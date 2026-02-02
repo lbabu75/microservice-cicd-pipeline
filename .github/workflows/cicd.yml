@@ -69,12 +69,10 @@ jobs:
             --config p/security-audit
             --config p/secrets
             --json
-            --pretty
             --output semgrep-report.json
         continue-on-error: true
 
       - name: Upload SAST Report
-        if: always() 
         uses: actions/upload-artifact@v4
         with:
           name: sast-report
@@ -84,7 +82,7 @@ jobs:
         uses: snyk/actions/node@master
         continue-on-error: true
         with:
-          args: test app k8s terraform --json-file-output=snyk-report.json
+          args: app k8s terraform --json-file-output=snyk-report.json
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
