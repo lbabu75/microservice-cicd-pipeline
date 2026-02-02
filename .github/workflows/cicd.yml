@@ -25,9 +25,9 @@ jobs:
     name: Code Quality & Security Scan
     runs-on: jen2
     # Ensure all steps execute inside the app folder
-    defaults:
-      run:
-        working-directory: ./app
+    # defaults:
+    #   run:
+    #     working-directory: ./app
         
     steps:
       - name: Checkout code
