@@ -101,6 +101,12 @@ jobs:
         env:
           JAVA_HOME: /opt/jdk
 
+      - name: Fix Permissions
+        if: always() # This is crucial: it runs even if the step above fails
+        run: |
+          # Change ownership of the reports directory back to the runner user
+          sudo chown -R $USER:$USER ${{ github.workspace }}/reports
+
   # Job 2: Unit and Integration Tests
   test:
     name: Run Tests
