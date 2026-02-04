@@ -246,7 +246,7 @@ jobs:
     name: Deploy to K3s
     runs-on: jen2
     needs: build-and-push
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -271,7 +271,7 @@ jobs:
           kubectl apply -f k8s/hpa.yml
           
           # Wait for rollout
-          kubectl rollout status deployment/${{ env.APP_NAME }} -n production --timeout=5m
+          kubectl rollout status deployment/${{ env.IMAGE_NAME }} -n production --timeout=5m
 
       - name: Verify deployment
         run: |
@@ -282,7 +282,7 @@ jobs:
       - name: Run smoke tests
         run: |
           # Get the service endpoint
-          ENDPOINT=$(kubectl get ingress ${{ env.APP_NAME }}-ingress -n production -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+          ENDPOINT=$(kubectl get ingress ${{ env.IMAGE_NAME }}-ingress -n production -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
           
           # Wait for endpoint to be ready
           sleep 30
@@ -300,6 +300,6 @@ jobs:
     steps:
       - name: Rollback deployment
         run: |
-          kubectl rollout undo deployment/${{ env.APP_NAME }} -n production
-          kubectl rollout status deployment/${{ env.APP_NAME }} -n production
+          kubectl rollout undo deployment/${{ env.IMAGE_NAME }} -n production
+          kubectl rollout status deployment/${{ env.IMAGE_NAME }} -n production
 
