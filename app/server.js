@@ -112,7 +112,7 @@ app.post('/api/users', (req, res) => {
 });
 
 // Error handling
-app.use((err, req, res, next) => {
+app.use((err, req, res, _next) => { // eslint-disable-line no-unused-vars
   logger.error('Error occurred', { error: err.message, stack: err.stack });
   res.status(500).json({ error: 'Internal server error' });
 });
