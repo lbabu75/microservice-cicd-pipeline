@@ -97,11 +97,17 @@ jobs:
         env:
           JAVA_HOME: /opt/jdk
 
+      - name: Upload OWASP Scan Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-check-report
+          path: reports/dependency-check-report.html # Path must match the 'out' setting above
+
       - name: Fix Permissions
         if: always() # This is crucial: it runs even if the step above fails
         working-directory: .
         run: |
-          sudo chown -R $USER:$USER ${{ github.workspace }}/reports || true
+          sudo chown -R $USER:$USER ${{ github.workflow }}/reports || true
 
   # Job 2: Unit and Integration Tests
   test:
