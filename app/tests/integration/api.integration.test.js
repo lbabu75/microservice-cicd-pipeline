@@ -26,6 +26,10 @@ describe('Integration Tests', () => {
       email: 'integration@example.com'
     };
 
+    // Verify list count increased
+    const finalUsers = await request(app).get('/api/users').expect(200);
+    expect(finalUsers.body.length).toBe(initialCount + 1);
+    
     const createRes = await request(app)
       .post('/api/users')
       .send(newUser)
