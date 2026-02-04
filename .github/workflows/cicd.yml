@@ -131,7 +131,7 @@ jobs:
   build-and-push:
     name: Build & Push Docker Image
     runs-on: jen2
-    needs: test
+    needs: security-scan
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     outputs:
       image-tag: ${{ steps.meta.outputs.tags }}
