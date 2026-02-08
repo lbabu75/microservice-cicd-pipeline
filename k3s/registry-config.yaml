@@ -1,0 +1,6 @@
+# This file is used by the K3s agent during startup
+# Path on VM: /etc/rancher/k3s/registries.yaml
+mirrors:
+  "10.0.0.121:5000":
+    endpoint:
+      - "http://10.0.0.121:5000"
