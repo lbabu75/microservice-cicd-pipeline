@@ -1,9 +1,5 @@
 # terraform/variables.tf
 
-variable "VM_PUBLIC_IP" {
-  type = string
-}
-
 variable "cluster_name" {
   description = "cluster name"
   type        = string
