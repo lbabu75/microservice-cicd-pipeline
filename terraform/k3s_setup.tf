@@ -1,20 +1,25 @@
+# 1. Let Terraform fetch the IP so it can "see" it
+data "http" "my_ip" {
+  url = "https://ifconfig.me"
+}
+
 resource "null_resource" "k3s_install_local" {
-  # This runs only once unless you manually taint it
   provisioner "local-exec" {
     command = <<EOT
-      # 1. Open Firewall ports locally
       sudo firewall-cmd --permanent --add-port=6443/tcp
       sudo firewall-cmd --permanent --add-port=80/tcp
       sudo firewall-cmd --permanent --add-port=443/tcp
       sudo firewall-cmd --reload
 
-      # 2. Install K3s (using the VM's public IP for the certificate)
-      # We fetch the public IP dynamically so you don't have to hardcode it
-      PUBLIC_IP=$(curl -s ifconfig.me)
-      curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--tls-san $PUBLIC_IP" sh -
+      # Use the Terraform data source variable here instead of a shell command
+      curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--tls-san ${data.http.my_ip.response_body}" sh -
       
-      # 3. Fix permissions so the runner user can use kubectl
       sudo chmod 644 /etc/rancher/k3s/k3s.yaml
     EOT
   }
+}
+
+# 2. Now the output can actually show the real IP!
+output "k3s_node_ip" {
+  value = "K3s installed on host with Public IP: ${data.http.my_ip.response_body}"
 }
