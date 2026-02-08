@@ -61,7 +61,7 @@ jobs:
 
       - name: Test Report
         uses: dorny/test-reporter@v1
-        if: success() || failure()
+        # if: success() || failure()
         with:
           name: Test Results
           path: 'test-results/*.xml'
@@ -125,7 +125,7 @@ jobs:
         if: always() # This is crucial: it runs even if the step above fails
         working-directory: .
         run: |
-          sudo chown -R $USER:$USER ${{ github.workflow }}/reports || true
+          sudo chown -R $USER:$USER ./reports || true
 
   # Build and Push Docker Image
   build-and-push:
