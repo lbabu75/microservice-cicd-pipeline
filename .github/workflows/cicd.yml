@@ -156,6 +156,9 @@ jobs:
         uses: cycjimmy/semantic-release-action@v4
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          cache: 'npm'
+          cache-dependency-path: 'app/package-lock.json'
   
   # Build and Push Docker Image
   build-and-push:
