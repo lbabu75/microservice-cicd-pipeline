@@ -126,48 +126,15 @@ jobs:
         working-directory: .
         run: |
           sudo chown -R $USER:$USER ./reports || true
-
-  # Semantic Release Versioning        
-  release:
-    name: Create Release
-    runs-on: jen2
-    needs: security-scan
-    container:
-      image: node:20-bullseye # This ensures npm is available
-    
-    if: github.ref == 'refs/heads/main'
-    
-    permissions:
-      contents: write  # Allows creating tags/releases
-      pull-requests: write # Allows commenting on PRs
-    
-    outputs:
-      new_release_version: ${{ steps.semantic.outputs.new_release_version }}
-      new_release_published: ${{ steps.semantic.outputs.new_release_published }}
-    
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          persist-credentials: false # Required for semantic-release to use GITHUB_TOKEN
-         
-      - name: Semantic Release
-        id: semantic
-        uses: cycjimmy/semantic-release-action@v4
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          cache: 'npm'
-          cache-dependency-path: 'app/package-lock.json'
-  
+ 
   # Build and Push Docker Image
   build-and-push:
     name: Build & Push Docker Image
     runs-on: jen2
-    needs: release
+    needs: security-scan
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     outputs:
-      image-tag: ${{ steps.meta.outputs.version }}
+      image-tag: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
       image-digest: ${{ steps.build.outputs.digest }}
     steps:
       - name: Checkout code
@@ -179,15 +146,6 @@ jobs:
           config-inline: |
             [registry."${{ env.REGISTRY }}"]
               http = true
-
-      # - name: Debug Secret1
-      #   run: echo "${{ secrets.REGISTRY_URL }}" | sed 's/./& /g'
-
-      # - name: Debug Secret2
-      #   run: echo "${{ secrets.SONAR_HOST_URL }}" | sed 's/./& /g'
-
-      # - name: Debug Secret3
-      #   run: echo "${{ secrets.SONAR_TOKEN }}" | sed 's/./& /g'
 
       - name: Log in to Registry
         uses: docker/login-action@v3
@@ -202,10 +160,12 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            # If release exists, use it. Otherwise use SHA
-            type=raw,value=${{ needs.release.outputs.new_release_version || 'latest' }}
-            type=semver,pattern={{major}}.{{minor}},value=${{ needs.release.outputs.new_release_version }}
-            type=sha
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push
         id: build
@@ -236,7 +196,10 @@ jobs:
           format: 'sarif'
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
+        env:
+          TRIVY_INSECURE: "true"
         continue-on-error: true
+        
 
       - name: Upload Trivy results to GitHub Security
         uses: github/codeql-action/upload-sarif@v3
