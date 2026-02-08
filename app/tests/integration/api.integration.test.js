@@ -25,11 +25,7 @@ describe('Integration Tests', () => {
       name: 'Integration Test User',
       email: 'integration@example.com'
     };
-
-    // Verify list count increased
-    const finalUsers = await request(app).get('/api/users').expect(200);
-    expect(finalUsers.body.length).toBe(initialCount + 1);
-    
+   
     const createRes = await request(app)
       .post('/api/users')
       .send(newUser)
@@ -37,6 +33,12 @@ describe('Integration Tests', () => {
 
     const userId = createRes.body.id;
 
+    // Verify list count increased
+    const finalUsers = await request(app)
+      .get('/api/users')
+      .expect(200);
+    expect(finalUsers.body.length).toBe(initialCount + 1);
+    
     // Verify user was created
     const getRes = await request(app)
       .get(`/api/users/${userId}`)
