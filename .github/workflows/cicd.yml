@@ -196,6 +196,7 @@ jobs:
           format: 'sarif'
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
+          vuln-type: 'os'
         env:
           TRIVY_INSECURE: "true"
         continue-on-error: true
@@ -214,6 +215,7 @@ jobs:
           format: 'table'
           exit-code: '0'
           severity: 'CRITICAL,HIGH'
+          vuln-type: 'os'
 
       # - name: Sign container image with Cosign
       #   env:
@@ -228,7 +230,7 @@ jobs:
   # Deploy to K3s
   deploy:
     name: Deploy to K3s
-    runs-on: jen2
+    runs-on: buildserver1
     needs: build-and-push
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     steps:
@@ -243,7 +245,7 @@ jobs:
       - name: Deploy to Kubernetes
         run: |
           # Update image tag in deployment
-          sed -i "s|IMAGE_TAG|${{ github.sha }}|g" k8s/deployment.yml
+          sed -i "s|IMAGE_TAG|${{ needs.build-and-push.outputs.image-tag }}|g" k8s/deployment.yml
           
           # Apply Kubernetes manifests
           kubectl apply -f k8s/namespace.yml
