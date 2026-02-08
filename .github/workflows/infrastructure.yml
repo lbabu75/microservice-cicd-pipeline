@@ -35,4 +35,6 @@ jobs:
       #     cat encoded_config
 
       - name: Verify Cluster System Pods
-        run: sudo kubectl get pods -n kube-system
+        run: |
+          export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+          /usr/local/bin/kubectl get pods -n kube-system
