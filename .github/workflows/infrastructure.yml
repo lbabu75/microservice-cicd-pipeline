@@ -1,0 +1,35 @@
+name: Infrastructure Setup (K3s)
+
+on:
+  workflow_dispatch: # Allows you to run it manually from the Actions tab
+  push:
+    paths:
+      - 'terraform/**' # Only run if terraform files change
+
+jobs:
+  provision-k3s:
+    name: Install K3s on Existing VM
+    runs-on: buildserver1
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Init
+        working-directory: ./terraform
+        run: terraform init
+
+      - name: Terraform Apply
+        working-directory: ./terraform
+        run: terraform apply -auto-approve
+
+      - name: Get Kubeconfig
+        run: |
+          echo "K3s is ready. Fetching config..."
+          PUBLIC_IP=$(curl -s ifconfig.me)
+          sudo sed "s/127.0.0.1/${{ vars.PUBLIC_IP }}/g" /etc/rancher/k3s/k3s.yaml | base64 -w 0 > encoded_config
+          echo "Kubeconfig ready. Copy the value below to your GitHub Secret 'KUBECONFIG':"
+          cat encoded_config
