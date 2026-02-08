@@ -1,6 +1,6 @@
 # 1. Let Terraform fetch the IP so it can "see" it
 data "http" "my_ip" {
-  url = "https://ifconfig.me"
+  url = "https://ifconfig.me/ip"
 }
 
 resource "null_resource" "k3s_install_local" {
