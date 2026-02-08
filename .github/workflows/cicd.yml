@@ -166,6 +166,10 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+        with:
+          config-inline: |
+            [registry."${{ env.REGISTRY }}"]
+              http = true
 
       # - name: Debug Secret1
       #   run: echo "${{ secrets.REGISTRY_URL }}" | sed 's/./& /g'
