@@ -1,0 +1,20 @@
+# k8s/service.yml
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: microservice-app
+  namespace: production
+  labels:
+    app: microservice-app
+  # REMOVED: AWS Load Balancer annotation
+spec:
+  type: ClusterIP # Best for internal apps behind an Ingress
+  ports:
+  - port: 80
+    targetPort: 3000
+    protocol: TCP
+    name: http
+  selector:
+    app: microservice-app
+  sessionAffinity: None
