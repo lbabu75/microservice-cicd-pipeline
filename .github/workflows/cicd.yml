@@ -231,7 +231,7 @@ jobs:
   deploy:
     name: Deploy to K3s
     runs-on: buildserver1
-    needs: build-and-push
+    needs: container-scan
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     steps:
       - name: Checkout code
@@ -245,7 +245,7 @@ jobs:
       - name: Deploy to Kubernetes
         run: |
           # Update image tag in deployment
-          sed -i "s|IMAGE_TAG|${{ needs.build-and-push.outputs.image-tag }}|g" k8s/deployment.yml
+          sed -i "s|IMAGE_TAG|${{ needs.build-and-push.outputs.image-tag }}|g" k3s/deployment.yml
           
           # Apply Kubernetes manifests
           kubectl apply -f k3s/namespace.yml

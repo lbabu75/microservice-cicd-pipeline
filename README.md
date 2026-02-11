@@ -6,9 +6,9 @@ A production-ready CI/CD pipeline for deploying microservices to AWS EKS with co
 
 The pipeline implements a complete DevOps workflow:
 
-- **Infrastructure as Code**: Terraform manages all AWS resources
+- **Infrastructure as Code**: Terraform manages k3s infra
 - **Containerization**: Docker multi-stage builds for optimized images
-- **Orchestration**: Kubernetes on AWS EKS
+- **Orchestration**: K3s on OCI vm
 - **CI/CD**: GitHub Actions for automated pipeline
 - **Security**: Multiple scanning tools (Snyk, Trivy, GitLeaks, SonarCloud)
 - **Monitoring**: Prometheus, Grafana, CloudWatch
@@ -16,7 +16,7 @@ The pipeline implements a complete DevOps workflow:
 
 ## Prerequisites
 
-- AWS Account with appropriate permissions
+- OCI vm
 - GitHub account
 - kubectl CLI
 - Terraform >= 1.0
