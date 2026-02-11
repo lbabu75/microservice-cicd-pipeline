@@ -7,34 +7,3 @@ metadata:
   labels:
     name: production
     environment: production
-
----
-# k8s/configmap.yml
-
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: app-config
-  namespace: production
-data:
-  log_level: "info"
-  node_env: "production"
-  app_name: "microservice-app"
-  metrics_enabled: "true"
-
----
-# k8s/secret.yml
-# Note: In production, use sealed-secrets or external-secrets operator
-# These values should be base64 encoded
-
-apiVersion: v1
-kind: Secret
-metadata:
-  name: app-secrets
-  namespace: production
-type: Opaque
-data:
-  # Example secrets (base64 encoded)
-  # Use: echo -n 'value' | base64
-  database_password: cGFzc3dvcmQxMjM=
-  api_key: c2VjcmV0a2V5MTIz
