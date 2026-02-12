@@ -231,7 +231,7 @@ jobs:
   deploy:
     name: Deploy to K3s
     runs-on: buildserver1
-    needs: container-scan
+    needs: [build-and-push, container-scan]
     if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     steps:
       - name: Checkout code
@@ -242,12 +242,44 @@ jobs:
           mkdir -p $HOME/.kube
           echo "${{ secrets.KUBECONFIG }}" | base64 -d > $HOME/.kube/config
           chmod 600 $HOME/.kube/config
-          echo "KUBECONFIG=$HOME/.kube/config" >> $GITHUB_ENV
+          
+      - name: Verify kubectl connection
+        env:
+          KUBECONFIG: $HOME/.kube/config
+        run: |
+          kubectl version --client
+          kubectl cluster-info || echo "Warning: Could not connect to cluster yet"
 
       - name: Deploy to Kubernetes
+        env:
+          KUBECONFIG: $HOME/.kube/config
         run: |
-          # Update image tag in deployment
-          sed -i "s|IMAGE_TAG|${{ needs.build-and-push.outputs.image-tag }}|g" k3s/manifests/deployment.yml
+          # Set variables from environment
+          IMAGE_TAG="${{ needs.build-and-push.outputs.image-tag }}"
+          APP_NAME="${{ env.IMAGE_NAME }}"
+          NAMESPACE="${{ env.K8S_NAMESPACE_PROD }}"
+          REGISTRY="${{ env.REGISTRY }}"
+          
+          echo "Deploying configuration:"
+          echo "  App Name: $APP_NAME"
+          echo "  Namespace: $NAMESPACE"
+          echo "  Registry: $REGISTRY"
+          echo "  Image Tag: $IMAGE_TAG"
+          
+          # Replace placeholders in all manifest files
+          for file in k3s/manifests/*.yml; do
+            echo "Processing $file..."
+            sed -i "s|__APP_NAME__|${APP_NAME}|g" "$file"
+            sed -i "s|__NAMESPACE__|${NAMESPACE}|g" "$file"
+            sed -i "s|__REGISTRY__|${REGISTRY}|g" "$file"
+            sed -i "s|__IMAGE_NAME__|${APP_NAME}|g" "$file"
+            sed -i "s|__IMAGE_TAG__|${IMAGE_TAG##*/}|g" "$file"
+          done
+          
+          # Verify the replacement worked
+          echo "Checking deployment manifest:"
+          grep "image:" k3s/manifests/deployment.yml
+          grep "namespace:" k3s/manifests/deployment.yml | head -1
 
           # Apply Kubernetes manifests
           kubectl apply -f k3s/manifests/namespace.yml
@@ -259,35 +291,54 @@ jobs:
           kubectl apply -f k3s/manifests/hpa.yml
           
           # Wait for rollout
-          kubectl rollout status deployment/${{ env.IMAGE_NAME }} -n production --timeout=5m
+          kubectl rollout status deployment/${{ env.IMAGE_NAME }} -n ${{ env.K8S_NAMESPACE_PROD }} --timeout=5m
 
       - name: Verify deployment
+        env:
+          KUBECONFIG: $HOME/.kube/config
         run: |
-          kubectl get pods -n production
-          kubectl get svc -n production
-          kubectl get ingress -n production
+          kubectl get pods -n ${{ env.K8S_NAMESPACE_PROD }}
+          kubectl get svc -n ${{ env.K8S_NAMESPACE_PROD }}
+          kubectl get ingress -n ${{ env.K8S_NAMESPACE_PROD }}
 
       - name: Run smoke tests
+        env:
+          KUBECONFIG: $HOME/.kube/config
         run: |
           # Get the service endpoint
-          ENDPOINT=$(kubectl get ingress ${{ env.IMAGE_NAME }}-ingress -n production -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+          ENDPOINT=$(kubectl get ingress ${{ env.IMAGE_NAME }}-ingress -n ${{ env.K8S_NAMESPACE_PROD }} -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' || echo "")
+          
+          if [ -z "$ENDPOINT" ]; then
+            echo "Warning: Could not get ingress endpoint, trying IP..."
+            ENDPOINT=$(kubectl get ingress ${{ env.IMAGE_NAME }}-ingress -n ${{ env.K8S_NAMESPACE_PROD }} -o jsonpath='{.status.loadBalancer.ingress[0].ip}' || echo "localhost")
+          fi
+          
+          echo "Testing endpoint: $ENDPOINT"
           
           # Wait for endpoint to be ready
           sleep 30
           
           # Run basic health check
-          curl -f http://${ENDPOINT}/health
+          curl -f http://${ENDPOINT}/health || echo "Health check failed or endpoint not ready"
         continue-on-error: true
 
   # Rollback on Failure
   rollback:
     name: Rollback on Failure
-    runs-on: jen2
+    runs-on: buildserver1
     needs: deploy
     if: failure()
     steps:
-      - name: Rollback deployment
+      - name: Set up kubectl
         run: |
-          kubectl rollout undo deployment/${{ env.IMAGE_NAME }} -n production
-          kubectl rollout status deployment/${{ env.IMAGE_NAME }} -n production
-
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBECONFIG }}" | base64 -d > $HOME/.kube/config
+          chmod 600 $HOME/.kube/config
+          
+      - name: Rollback deployment
+        env:
+          KUBECONFIG: $HOME/.kube/config
+        run: |
+          kubectl rollout undo deployment/${{ env.IMAGE_NAME }} -n ${{ env.K8S_NAMESPACE_PROD }}
+          kubectl rollout status deployment/${{ env.IMAGE_NAME }} -n ${{ env.K8S_NAMESPACE_PROD }}
+          

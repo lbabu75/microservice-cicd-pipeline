@@ -3,11 +3,11 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: microservice-app
-  namespace: production
+  name: __APP_NAME__
+  namespace: __NAMESPACE__
   labels:
-    app: microservice-app
-  # REMOVED: AWS Load Balancer annotation
+    app: __APP_NAME__
+
 spec:
   type: ClusterIP # Best for internal apps behind an Ingress
   ports:
@@ -16,5 +16,6 @@ spec:
     protocol: TCP
     name: http
   selector:
-    app: microservice-app
+    app: __APP_NAME__
   sessionAffinity: None
+  

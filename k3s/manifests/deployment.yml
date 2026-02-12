@@ -1,10 +1,10 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: microservice-app
-  namespace: production
+  name: __APP_NAME__
+  namespace: __NAMESPACE__
   labels:
-    app: microservice-app
+    app: __APP_NAME__
     version: v1
 spec:
   replicas: 1 # Set to 1 for a single-node K3s VM; 3 may cause resource contention
@@ -15,26 +15,25 @@ spec:
       maxUnavailable: 0
   selector:
     matchLabels:
-      app: microservice-app
+      app: __APP_NAME__
   template:
     metadata:
       labels:
-        app: microservice-app
+        app: __APP_NAME__
         version: v1
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "3000"
         prometheus.io/path: "/metrics"
     spec:
-      serviceAccountName: microservice-app-sa
+      serviceAccountName: __APP_NAME__-sa
       securityContext:
         runAsNonRoot: true
         runAsUser: 1001
         fsGroup: 1001
       containers:
-      - name: microservice-app
-        # UPDATED: Pointing to your local Docker registry
-        image: 10.0.0.121:5000/microservice-app:IMAGE_TAG
+      - name: __APP_NAME__
+        image: __REGISTRY__/__IMAGE_NAME__:__IMAGE_TAG__
         imagePullPolicy: Always
         ports:
         - containerPort: 3000
@@ -88,25 +87,25 @@ spec:
         emptyDir: {}
       - name: cache
         emptyDir: {}
-      # REMOVED: topologySpreadConstraints (AWS Zone specific)
-      # REMOVED: podAntiAffinity (Only useful if you have multiple nodes)
+
 
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: microservice-app-sa
-  namespace: production
-  # REMOVED: eks.amazonaws.com/role-arn (AWS IAM specific)
+  name: __APP_NAME__-sa
+  namespace: __NAMESPACE__
+
 
 ---
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
-  name: microservice-app-pdb
-  namespace: production
+  name: __APP_NAME__-pdb
+  namespace: __NAMESPACE__
 spec:
   minAvailable: 1
   selector:
     matchLabels:
-      app: microservice-app
+      app: __APP_NAME__
+      
