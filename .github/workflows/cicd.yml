@@ -252,7 +252,7 @@ jobs:
 
       - name: Deploy to Kubernetes
         env:
-          KUBECONFIG: $HOME/.kube/config
+          KUBECONFIG: /home/opc/.kube/config
         run: |
           # Set variables from environment
           IMAGE_VERSION="${{ needs.build-and-push.outputs.image-version }}"
