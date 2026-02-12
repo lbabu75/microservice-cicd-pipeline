@@ -17,6 +17,7 @@ resource "null_resource" "k3s_install_local" {
       # Update Firewall
       sudo firewall-cmd --permanent --add-port=6443/tcp
       sudo firewall-cmd --permanent --add-port=80/tcp
+      sudo firewall-cmd --permanent --add-port=8080/tcp
       sudo firewall-cmd --permanent --add-port=443/tcp
       sudo firewall-cmd --reload
 
