@@ -121,7 +121,7 @@ let server; // 1. Declare server variable in outer scope
 
 // Start server
 if (require.main === module) {
-  server = app.listen(port, () => {
+  server = app.listen(port, '0.0.0.0', () => {
   logger.info(`Server running on port ${port}`);
   });
 }
