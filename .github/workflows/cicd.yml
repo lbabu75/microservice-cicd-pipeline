@@ -265,7 +265,7 @@ jobs:
           echo "  App Name: $APP_NAME"
           echo "  Namespace: $NAMESPACE"
           echo "  Registry: $REGISTRY"
-          echo "  Image Tag: $IMAGE_TAG"
+          echo "  Image Tag: $IMAGE_VERSION"
           
           # Replace placeholders in all manifest files
           for file in k3s/manifests/*.yml; do
