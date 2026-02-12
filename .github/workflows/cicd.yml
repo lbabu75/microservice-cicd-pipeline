@@ -294,8 +294,6 @@ jobs:
           kubectl rollout status deployment/${{ env.IMAGE_NAME }} -n ${{ env.K8S_NAMESPACE_PROD }} --timeout=5m
 
       - name: Verify deployment
-        env:
-          KUBECONFIG: $HOME/.kube/config
         run: |
           kubectl get pods -n ${{ env.K8S_NAMESPACE_PROD }}
           kubectl get svc -n ${{ env.K8S_NAMESPACE_PROD }}
