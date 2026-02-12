@@ -134,7 +134,8 @@ jobs:
     needs: security-scan
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     outputs:
-      image-tag: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
+      image-version: ${{ steps.meta.outputs.version }}
+      image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
       image-digest: ${{ steps.build.outputs.digest }}
     steps:
       - name: Checkout code
@@ -192,7 +193,7 @@ jobs:
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ needs.build-and-push.outputs.image-tag }}
+          image-ref: ${{ needs.build-and-push.outputs.image }}
           format: 'sarif'
           output: 'trivy-results.sarif'
           severity: 'CRITICAL,HIGH'
@@ -211,7 +212,7 @@ jobs:
       - name: Run Trivy in table format
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ needs.build-and-push.outputs.image-tag }}
+          image-ref: ${{ needs.build-and-push.outputs.image }}
           format: 'table'
           exit-code: '0'
           severity: 'CRITICAL,HIGH'
@@ -255,7 +256,7 @@ jobs:
           KUBECONFIG: $HOME/.kube/config
         run: |
           # Set variables from environment
-          IMAGE_TAG="${{ needs.build-and-push.outputs.image-tag }}"
+          IMAGE_VERSION="${{ needs.build-and-push.outputs.image-version }}"
           APP_NAME="${{ env.IMAGE_NAME }}"
           NAMESPACE="${{ env.K8S_NAMESPACE_PROD }}"
           REGISTRY="${{ env.REGISTRY }}"
@@ -273,7 +274,7 @@ jobs:
             sed -i "s|__NAMESPACE__|${NAMESPACE}|g" "$file"
             sed -i "s|__REGISTRY__|${REGISTRY}|g" "$file"
             sed -i "s|__IMAGE_NAME__|${APP_NAME}|g" "$file"
-            sed -i "s|__IMAGE_TAG__|${IMAGE_TAG##*/}|g" "$file"
+            sed -i "s|__IMAGE_TAG__|${IMAGE_VERSION}|g" "$file"
           done
           
           # Verify the replacement worked

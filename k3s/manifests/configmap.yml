@@ -4,9 +4,9 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: app-config
-  namespace: production
+  namespace: __NAMESPACE__
 data:
   log_level: "info"
-  node_env: "production"
-  app_name: "microservice-app"
+  node_env: "__NAMESPACE__"
+  app_name: "__APP_NAME__"
   metrics_enabled: "true"
