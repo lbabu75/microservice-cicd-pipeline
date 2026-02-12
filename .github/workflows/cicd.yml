@@ -243,7 +243,7 @@ jobs:
           mkdir -p $HOME/.kube
           echo "${{ secrets.KUBECONFIG }}" | base64 -d > $HOME/.kube/config
           chmod 600 $HOME/.kube/config
-          echo "KUBECONFIG=~/.kube/config" >> $GITHUB_ENV
+          echo "KUBECONFIG=/home/opc/.kube/config" >> $GITHUB_ENV
           
       - name: Verify kubectl connection
         run: |
