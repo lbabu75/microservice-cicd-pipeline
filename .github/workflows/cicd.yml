@@ -251,8 +251,6 @@ jobs:
           kubectl cluster-info
 
       - name: Deploy to Kubernetes
-        env:
-          KUBECONFIG: /home/opc/.kube/config
         run: |
           # Set variables from environment
           IMAGE_VERSION="${{ needs.build-and-push.outputs.image-version }}"
@@ -300,8 +298,6 @@ jobs:
           kubectl get ingress -n ${{ env.K8S_NAMESPACE_PROD }}
 
       - name: Run smoke tests
-        env:
-          KUBECONFIG: $HOME/.kube/config
         run: |
           # Get the service endpoint
           ENDPOINT=$(kubectl get ingress ${{ env.IMAGE_NAME }}-ingress -n ${{ env.K8S_NAMESPACE_PROD }} -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' || echo "")
@@ -334,8 +330,6 @@ jobs:
           chmod 600 $HOME/.kube/config
           
       - name: Rollback deployment
-        env:
-          KUBECONFIG: $HOME/.kube/config
         run: |
           kubectl rollout undo deployment/${{ env.IMAGE_NAME }} -n ${{ env.K8S_NAMESPACE_PROD }}
           kubectl rollout status deployment/${{ env.IMAGE_NAME }} -n ${{ env.K8S_NAMESPACE_PROD }}
