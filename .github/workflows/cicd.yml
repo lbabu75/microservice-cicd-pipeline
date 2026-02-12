@@ -15,9 +15,9 @@ concurrency:
   
 env:
   REGISTRY: ${{ vars.REGISTRY_URL }}
-  IMAGE_NAME: microservice-app
-  K8S_NAMESPACE_PROD: production
-  K8S_NAMESPACE_STAGING: staging
+  IMAGE_NAME: ${{ vars.IMAGE_NAME }}
+  K8S_NAMESPACE_PROD: ${{ vars.K8S_NAMESPACE_PROD }}
+  K8S_NAMESPACE_STAGING: ${{ vars.K8S_NAMESPACE_STAGING }}
 
 jobs:
   # Security Scanning and Code Quality
@@ -341,4 +341,3 @@ jobs:
         run: |
           kubectl rollout undo deployment/${{ env.IMAGE_NAME }} -n ${{ env.K8S_NAMESPACE_PROD }}
           kubectl rollout status deployment/${{ env.IMAGE_NAME }} -n ${{ env.K8S_NAMESPACE_PROD }}
-          
