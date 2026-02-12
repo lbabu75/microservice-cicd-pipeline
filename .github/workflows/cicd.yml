@@ -314,7 +314,7 @@ jobs:
           
           # Run basic health check
           curl -f http://${ENDPOINT}/health || echo "Health check failed or endpoint not ready"
-        continue-on-error: true
+
 
   # Rollback on Failure
   rollback:
