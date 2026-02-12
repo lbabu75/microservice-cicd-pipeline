@@ -18,7 +18,6 @@ metadata:
     alb.ingress.kubernetes.io/group.name: microservices
     alb.ingress.kubernetes.io/tags: Environment=__NAMESPACE__,Application=__APP_NAME__
 spec:
-  ingressClassName: traefik
   rules:
   - host: api.example.com
     http:

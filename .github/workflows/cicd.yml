@@ -299,21 +299,14 @@ jobs:
 
       - name: Run smoke tests
         run: |
-          # Get the service endpoint
-          ENDPOINT=$(kubectl get ingress ${{ env.IMAGE_NAME }}-ingress -n ${{ env.K8S_NAMESPACE_PROD }} -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' || echo "")
-          
-          if [ -z "$ENDPOINT" ]; then
-            echo "Warning: Could not get ingress endpoint, trying IP..."
-            ENDPOINT=$(kubectl get ingress ${{ env.IMAGE_NAME }}-ingress -n ${{ env.K8S_NAMESPACE_PROD }} -o jsonpath='{.status.loadBalancer.ingress[0].ip}' || echo "localhost")
-          fi
-          
-          echo "Testing endpoint: $ENDPOINT"
-          
-          # Wait for endpoint to be ready
-          sleep 30
-          
-          # Run basic health check
-          curl -f http://${ENDPOINT}/health || echo "Health check failed or endpoint not ready"
+         HOST=$(kubectl get ingress microservice-app-ingress -n production -o jsonpath='{.spec.rules[0].host}')
+         IP=$(kubectl get ingress microservice-app-ingress -n production -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+
+         echo "Testing Host: $HOST on IP: $IP"
+
+         sleep 15
+
+         curl -f -H "Host: $HOST" http://$IP/health || echo "Health check failed or endpoint not ready"
 
 
   # Rollback on Failure
