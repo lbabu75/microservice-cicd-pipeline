@@ -238,12 +238,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up kubectl
-        run: |
-          mkdir -p $HOME/.kube
-          echo "${{ secrets.KUBECONFIG }}" | base64 -d > $HOME/.kube/config
-          chmod 600 $HOME/.kube/config
-          echo "KUBECONFIG=$(realpath $HOME/.kube/config)" >> $GITHUB_ENV
+      # - name: Set up kubectl
+      #   run: |
+      #     mkdir -p $HOME/.kube
+      #     echo "${{ secrets.KUBECONFIG }}" | base64 -d > $HOME/.kube/config
+      #     chmod 600 $HOME/.kube/config
+      #     echo "KUBECONFIG=$(realpath $HOME/.kube/config)" >> $GITHUB_ENV
           
       - name: Verify kubectl connection
         run: |
@@ -265,7 +265,7 @@ jobs:
           echo "  Image Tag: $IMAGE_VERSION"
           
           # Replace placeholders in all manifest files
-          for file in k3s/manifests/*.yml; do
+          for file in k8s/*.yml; do
             echo "Processing $file..."
             sed -i "s|__APP_NAME__|${APP_NAME}|g" "$file"
             sed -i "s|__NAMESPACE__|${NAMESPACE}|g" "$file"
@@ -280,13 +280,12 @@ jobs:
           grep "namespace:" k3s/manifests/deployment.yml | head -1
 
           # Apply Kubernetes manifests
-          kubectl apply -f k3s/manifests/namespace.yml
-          kubectl apply -f k3s/manifests/configmap.yml
-          kubectl apply -f k3s/manifests/secret.yml
-          kubectl apply -f k3s/manifests/deployment.yml
-          kubectl apply -f k3s/manifests/service.yml
-          kubectl apply -f k3s/manifests/ingress.yml
-          kubectl apply -f k3s/manifests/hpa.yml
+          kubectl apply -f k8s/namespace.yml
+          kubectl apply -f k8s/configmap.yml
+          kubectl apply -f k8s/secret.yml
+          kubectl apply -f k8s/service.yml
+          kubectl apply -f k8s/deployment.yml
+          kubectl apply -f k8s/hpa.yml
           
           # Wait for rollout
           kubectl rollout status deployment/${{ env.IMAGE_NAME }} -n ${{ env.K8S_NAMESPACE_PROD }} --timeout=5m
@@ -299,37 +298,39 @@ jobs:
 
       - name: Run smoke tests
         run: |
-         INGRESS_NAME="${{ env.IMAGE_NAME }}-ingress"
-         NAMESPACE="${{ env.K8S_NAMESPACE_PROD }}"
-    
-         echo "Fetching ingress details..."
-         kubectl get ingress $INGRESS_NAME -n $NAMESPACE
+          SERVICE_NAME="${{ env.IMAGE_NAME }}-service"
+          NAMESPACE="${{ env.K8S_NAMESPACE_PROD }}"
 
-         HOST=$(kubectl get ingress microservice-app-ingress -n production -o jsonpath='{.spec.rules[0].host}')
-         IP=$(kubectl get ingress microservice-app-ingress -n production -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+          echo "Fetching service details..."
+          kubectl get service $SERVICE_NAME -n $NAMESPACE
 
-         echo "Testing Host: $HOST on IP: $IP"
+          NODE_PORT=$(kubectl get service $SERVICE_NAME -n $NAMESPACE -o jsonpath='{.spec.ports[0].nodePort}')
+          NODE_IP=$(kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="ExternalIP")].address}')  # Use ExternalIP; fallback to InternalIP if no public IP
 
-         sleep 30
+          if [ -z "$NODE_IP" ]; then
+            NODE_IP=$(kubectl get nodes -o jsonpath='{.items[0].status.addresses[?(@.type=="InternalIP")].address}')
+          fi
 
-         # Test with verbose output and proper error handling
-         echo "Testing /health endpoint..."
-         if curl -v -f --max-time 10 -H "Host: $HOST" "http://$IP/health"; then
-           echo "✅ Health check passed"
-         else
-           echo "❌ Health check failed"
-           echo "Checking pod logs..."
-           kubectl logs -l app=${{ env.IMAGE_NAME }} -n $NAMESPACE --tail=50
-           echo "Checking pod status..."
-           kubectl describe pod -l app=${{ env.IMAGE_NAME }} -n $NAMESPACE
-           exit 1
-         fi
-    
-         echo "Testing /ready endpoint..."
-         curl -f -H "Host: $HOST" "http://$IP/ready" || echo "Ready check failed"
-    
-         echo "Testing /api/users endpoint..."
-         curl -f -H "Host: $HOST" "http://$IP/api/users" || echo "API check failed"
+          echo "Testing on Node IP: $NODE_IP and Port: $NODE_PORT"
+
+          sleep 30
+
+          # Test with verbose output and proper error handling
+          echo "Testing /health endpoint..."
+          if curl -v -f --max-time 10 "http://$NODE_IP:$NODE_PORT/health"; then
+            echo "✅ Health check passed"
+          else
+            echo "❌ Health check failed"
+            echo "Checking pod status..."
+            kubectl describe pod -l app=${{ env.IMAGE_NAME }} -n $NAMESPACE
+            exit 1
+          fi
+
+          echo "Testing /ready endpoint..."
+          curl -f "http://$NODE_IP:$NODE_PORT/ready" || echo "Ready check failed"
+
+          echo "Testing /api/users endpoint..."
+          curl -f "http://$NODE_IP:$NODE_PORT/api/users" || echo "API check failed"
 
 
 
