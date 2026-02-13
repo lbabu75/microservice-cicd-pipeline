@@ -8,5 +8,5 @@ metadata:
 data:
   log_level: "info"
   node_env: "production"
-  app_name: "sample-microservice"
+  app_name: "microservice-app"
   metrics_enabled: "true"

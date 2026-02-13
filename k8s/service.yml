@@ -3,10 +3,10 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: sample-microservice
+  name: microservice-app
   namespace: production
   labels:
-    app: sample-microservice
+    app: microservice-app
   annotations:
     service.beta.kubernetes.io/aws-load-balancer-type: "nlb"
 spec:
@@ -17,6 +17,6 @@ spec:
     protocol: TCP
     name: http
   selector:
-    app: sample-microservice
+    app: microservice-app
   sessionAffinity: None
 

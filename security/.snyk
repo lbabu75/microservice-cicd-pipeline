@@ -28,7 +28,7 @@ test:
 # sonar-project.properties
 # SonarQube configuration
 
-sonar.projectKey=sample-microservice
+sonar.projectKey=microservice-app
 sonar.projectName=Sample Microservice
 sonar.projectVersion=1.0
 
@@ -108,12 +108,12 @@ deny[msg] {
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: sample-microservice-netpol
+  name: microservice-app-netpol
   namespace: production
 spec:
   podSelector:
     matchLabels:
-      app: sample-microservice
+      app: microservice-app
   policyTypes:
   - Ingress
   - Egress

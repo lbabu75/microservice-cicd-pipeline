@@ -12,7 +12,7 @@ snyk test --all-projects || true
 
 # Trivy scan
 echo "Running Trivy container scan..."
-trivy image --severity HIGH,CRITICAL sample-microservice:latest || true
+trivy image --severity HIGH,CRITICAL microservice-app:latest || true
 
 # GitLeaks scan
 echo "Running GitLeaks secret scan..."

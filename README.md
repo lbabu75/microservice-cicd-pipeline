@@ -217,7 +217,7 @@ kubectl logs <pod-name> -n production
 
 ### View deployment history
 ```bash
-kubectl rollout history deployment/sample-microservice -n production
+kubectl rollout history deployment/microservice-app -n production
 ```
 
 ### Check metrics

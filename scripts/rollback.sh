@@ -5,7 +5,7 @@
 set -e
 
 ENVIRONMENT=${1:-production}
-APP_NAME=${APP_NAME:-sample-microservice}
+APP_NAME=${APP_NAME:-microservice-app}
 REVISION=${2:-0}
 
 echo "Rolling back deployment in $ENVIRONMENT environment..."

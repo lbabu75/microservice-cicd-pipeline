@@ -119,14 +119,14 @@ grafana:
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: sample-microservice
+  name: microservice-app
   namespace: production
   labels:
-    app: sample-microservice
+    app: microservice-app
 spec:
   selector:
     matchLabels:
-      app: sample-microservice
+      app: microservice-app
   endpoints:
   - port: http
     path: /metrics
@@ -139,21 +139,21 @@ spec:
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
 metadata:
-  name: sample-microservice-alerts
+  name: microservice-app-alerts
   namespace: production
   labels:
-    app: sample-microservice
+    app: microservice-app
 spec:
   groups:
-  - name: sample-microservice
+  - name: microservice-app
     interval: 30s
     rules:
     # High Error Rate
     - alert: HighErrorRate
       expr: |
-        sum(rate(http_requests_total{status=~"5..", job="sample-microservice"}[5m])) 
+        sum(rate(http_requests_total{status=~"5..", job="microservice-app"}[5m])) 
         / 
-        sum(rate(http_requests_total{job="sample-microservice"}[5m])) 
+        sum(rate(http_requests_total{job="microservice-app"}[5m])) 
         > 0.05
       for: 5m
       labels:
@@ -166,7 +166,7 @@ spec:
     - alert: HighResponseTime
       expr: |
         histogram_quantile(0.95, 
-          sum(rate(http_request_duration_seconds_bucket{job="sample-microservice"}[5m])) by (le)
+          sum(rate(http_request_duration_seconds_bucket{job="microservice-app"}[5m])) by (le)
         ) > 1
       for: 5m
       labels:
@@ -178,22 +178,22 @@ spec:
     # Pod Down
     - alert: PodDown
       expr: |
-        kube_deployment_status_replicas_available{deployment="sample-microservice"} 
+        kube_deployment_status_replicas_available{deployment="microservice-app"} 
         < 
-        kube_deployment_spec_replicas{deployment="sample-microservice"}
+        kube_deployment_spec_replicas{deployment="microservice-app"}
       for: 5m
       labels:
         severity: critical
       annotations:
-        summary: "Pod(s) down for sample-microservice"
+        summary: "Pod(s) down for microservice-app"
         description: "{{ $value }} pod(s) are down for {{ $labels.deployment }}"
     
     # High Memory Usage
     - alert: HighMemoryUsage
       expr: |
-        sum(container_memory_usage_bytes{pod=~"sample-microservice-.*"}) 
+        sum(container_memory_usage_bytes{pod=~"microservice-app-.*"}) 
         / 
-        sum(container_spec_memory_limit_bytes{pod=~"sample-microservice-.*"}) 
+        sum(container_spec_memory_limit_bytes{pod=~"microservice-app-.*"}) 
         > 0.9
       for: 5m
       labels:
@@ -205,9 +205,9 @@ spec:
     # High CPU Usage
     - alert: HighCPUUsage
       expr: |
-        sum(rate(container_cpu_usage_seconds_total{pod=~"sample-microservice-.*"}[5m])) 
+        sum(rate(container_cpu_usage_seconds_total{pod=~"microservice-app-.*"}[5m])) 
         / 
-        sum(container_spec_cpu_quota{pod=~"sample-microservice-.*"}/container_spec_cpu_period{pod=~"sample-microservice-.*"}) 
+        sum(container_spec_cpu_quota{pod=~"microservice-app-.*"}/container_spec_cpu_period{pod=~"microservice-app-.*"}) 
         > 0.8
       for: 5m
       labels:
@@ -219,7 +219,7 @@ spec:
     # Container Restart
     - alert: ContainerRestart
       expr: |
-        rate(kube_pod_container_status_restarts_total{pod=~"sample-microservice-.*"}[15m]) > 0
+        rate(kube_pod_container_status_restarts_total{pod=~"microservice-app-.*"}[15m]) > 0
       for: 5m
       labels:
         severity: warning

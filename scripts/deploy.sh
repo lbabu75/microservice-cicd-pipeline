@@ -8,7 +8,7 @@ set -e
 ENVIRONMENT=${1:-production}
 AWS_REGION=${AWS_REGION:-us-east-1}
 CLUSTER_NAME=${CLUSTER_NAME:-microservice-cluster}
-APP_NAME=${APP_NAME:-sample-microservice}
+APP_NAME=${APP_NAME:-microservice-app}
 
 echo "========================================="
 echo "Deploying to: $ENVIRONMENT"

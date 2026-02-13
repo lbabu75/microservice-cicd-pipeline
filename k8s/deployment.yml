@@ -3,10 +3,10 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: sample-microservice
+  name: microservice-app
   namespace: production
   labels:
-    app: sample-microservice
+    app: microservice-app
     version: v1
 spec:
   replicas: 3
@@ -17,25 +17,25 @@ spec:
       maxUnavailable: 0
   selector:
     matchLabels:
-      app: sample-microservice
+      app: microservice-app
   template:
     metadata:
       labels:
-        app: sample-microservice
+        app: microservice-app
         version: v1
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "3000"
         prometheus.io/path: "/metrics"
     spec:
-      serviceAccountName: sample-microservice-sa
+      serviceAccountName: microservice-app-sa
       securityContext:
         runAsNonRoot: true
         runAsUser: 1001
         fsGroup: 1001
       containers:
-      - name: sample-microservice
-        image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/sample-microservice-repository:IMAGE_TAG
+      - name: microservice-app
+        image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/microservice-app-repository:IMAGE_TAG
         imagePullPolicy: Always
         ports:
         - containerPort: 3000
@@ -105,7 +105,7 @@ spec:
                 - key: app
                   operator: In
                   values:
-                  - sample-microservice
+                  - microservice-app
               topologyKey: kubernetes.io/hostname
       topologySpreadConstraints:
       - maxSkew: 1
@@ -113,25 +113,25 @@ spec:
         whenUnsatisfiable: DoNotSchedule
         labelSelector:
           matchLabels:
-            app: sample-microservice
+            app: microservice-app
 
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: sample-microservice-sa
+  name: microservice-app-sa
   namespace: production
   annotations:
-    eks.amazonaws.com/role-arn: arn:aws:iam::${AWS_ACCOUNT_ID}:role/sample-microservice-role
+    eks.amazonaws.com/role-arn: arn:aws:iam::${AWS_ACCOUNT_ID}:role/microservice-app-role
 
 ---
 apiVersion: policy/v1
 kind: PodDisruptionBudget
 metadata:
-  name: sample-microservice-pdb
+  name: microservice-app-pdb
   namespace: production
 spec:
   minAvailable: 1
   selector:
     matchLabels:
-      app: sample-microservice
+      app: microservice-app

@@ -24,7 +24,7 @@ lint:
 	cd app && npm run lint
 
 build:
-	docker build -t sample-microservice:latest ./app
+	docker build -t microservice-app:latest ./app
 
 deploy:
 	./scripts/deploy.sh production
