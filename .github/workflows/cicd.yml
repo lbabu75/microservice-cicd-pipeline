@@ -238,12 +238,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # - name: Set up kubectl
-      #   run: |
-      #     mkdir -p $HOME/.kube
-      #     echo "${{ secrets.KUBECONFIG }}" | base64 -d > $HOME/.kube/config
-      #     chmod 600 $HOME/.kube/config
-      #     echo "KUBECONFIG=$(realpath $HOME/.kube/config)" >> $GITHUB_ENV
+      - name: Set up kubectl
+        run: |
+          mkdir -p $HOME/.kube
+          echo "${{ secrets.KUBECONFIG }}" | base64 -d > $HOME/.kube/config
+          chmod 600 $HOME/.kube/config
+          echo "KUBECONFIG=$(realpath $HOME/.kube/config)" >> $GITHUB_ENV
           
       - name: Verify kubectl connection
         run: |
