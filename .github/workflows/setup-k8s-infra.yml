@@ -1,4 +1,4 @@
-name: Install Kubernetes on Oracle Linux 8 Self-Hosted Runner
+name: Install K8s
 
 on:
   workflow_dispatch:  # Allows manual triggering; adjust triggers as needed (e.g., push, pull_request)
