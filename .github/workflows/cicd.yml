@@ -276,8 +276,8 @@ jobs:
           
           # Verify the replacement worked
           echo "Checking deployment manifest:"
-          grep "image:" k3s/manifests/deployment.yml
-          grep "namespace:" k3s/manifests/deployment.yml | head -1
+          grep "image:" k8s/deployment.yml
+          grep "namespace:" k8s/deployment.yml | head -1
 
           # Apply Kubernetes manifests
           kubectl apply -f k8s/namespace.yml
