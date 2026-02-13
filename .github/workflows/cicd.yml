@@ -299,14 +299,38 @@ jobs:
 
       - name: Run smoke tests
         run: |
+         INGRESS_NAME="${{ env.IMAGE_NAME }}-ingress"
+         NAMESPACE="${{ env.K8S_NAMESPACE_PROD }}"
+    
+         echo "Fetching ingress details..."
+         kubectl get ingress $INGRESS_NAME -n $NAMESPACE
+
          HOST=$(kubectl get ingress microservice-app-ingress -n production -o jsonpath='{.spec.rules[0].host}')
          IP=$(kubectl get ingress microservice-app-ingress -n production -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 
          echo "Testing Host: $HOST on IP: $IP"
 
-         sleep 15
+         sleep 30
 
-         curl -f -H "Host: $HOST" http://$IP/health || echo "Health check failed or endpoint not ready"
+         # Test with verbose output and proper error handling
+         echo "Testing /health endpoint..."
+         if curl -v -f --max-time 10 -H "Host: $HOST" "http://$IP/health"; then
+           echo "✅ Health check passed"
+         else
+           echo "❌ Health check failed"
+           echo "Checking pod logs..."
+           kubectl logs -l app=${{ env.IMAGE_NAME }} -n $NAMESPACE --tail=50
+           echo "Checking pod status..."
+           kubectl describe pod -l app=${{ env.IMAGE_NAME }} -n $NAMESPACE
+           exit 1
+         fi
+    
+         echo "Testing /ready endpoint..."
+         curl -f -H "Host: $HOST" "http://$IP/ready" || echo "Ready check failed"
+    
+         echo "Testing /api/users endpoint..."
+         curl -f -H "Host: $HOST" "http://$IP/api/users" || echo "API check failed"
+
 
 
   # Rollback on Failure
