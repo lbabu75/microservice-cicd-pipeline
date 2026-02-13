@@ -1,15 +1,12 @@
-# k8s/deployment.yml
-
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: microservice-app
-  namespace: production
+  name:  __APP_NAME__
+  namespace: __NAMESPACE__
   labels:
-    app: microservice-app
-    version: v1
+    app:  __APP_NAME__
 spec:
-  replicas: 3
+  replicas: 2 # Reduced for smaller VM resources
   strategy:
     type: RollingUpdate
     rollingUpdate:
@@ -17,40 +14,30 @@ spec:
       maxUnavailable: 0
   selector:
     matchLabels:
-      app: microservice-app
+      app:  __APP_NAME__
   template:
     metadata:
       labels:
-        app: microservice-app
-        version: v1
-      annotations:
-        prometheus.io/scrape: "true"
-        prometheus.io/port: "3000"
-        prometheus.io/path: "/metrics"
+        app:  __APP_NAME__
     spec:
-      serviceAccountName: microservice-app-sa
+      serviceAccountName:  __APP_NAME__-sa
       securityContext:
         runAsNonRoot: true
         runAsUser: 1001
         fsGroup: 1001
       containers:
-      - name: microservice-app
-        image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/microservice-app-repository:IMAGE_TAG
+      - name:  __APP_NAME__
+        image: __REGISTRY__/__IMAGE_NAME__:__IMAGE_TAG__ 
         imagePullPolicy: Always
         ports:
         - containerPort: 3000
           name: http
-          protocol: TCP
         env:
         - name: PORT
           value: "3000"
         - name: NODE_ENV
-          value: "production"
-        - name: LOG_LEVEL
-          valueFrom:
-            configMapKeyRef:
-              name: app-config
-              key: log_level
+          value: "__NAMESPACE__"
+        # NOTE: Ensure 'app-config' ConfigMap and 'app-secrets' Secret exist in your cluster
         envFrom:
         - configMapRef:
             name: app-config
@@ -68,70 +55,26 @@ spec:
             path: /health
             port: 3000
           initialDelaySeconds: 15
-          periodSeconds: 10
-          timeoutSeconds: 3
-          failureThreshold: 3
         readinessProbe:
           httpGet:
             path: /ready
             port: 3000
-          initialDelaySeconds: 5
-          periodSeconds: 5
-          timeoutSeconds: 3
-          failureThreshold: 2
         securityContext:
           allowPrivilegeEscalation: false
           readOnlyRootFilesystem: true
           capabilities:
-            drop:
-            - ALL
+            drop: [ALL]
         volumeMounts:
         - name: tmp
           mountPath: /tmp
-        - name: cache
-          mountPath: /app/.cache
       volumes:
       - name: tmp
         emptyDir: {}
-      - name: cache
-        emptyDir: {}
-      affinity:
-        podAntiAffinity:
-          preferredDuringSchedulingIgnoredDuringExecution:
-          - weight: 100
-            podAffinityTerm:
-              labelSelector:
-                matchExpressions:
-                - key: app
-                  operator: In
-                  values:
-                  - microservice-app
-              topologyKey: kubernetes.io/hostname
-      topologySpreadConstraints:
-      - maxSkew: 1
-        topologyKey: topology.kubernetes.io/zone
-        whenUnsatisfiable: DoNotSchedule
-        labelSelector:
-          matchLabels:
-            app: microservice-app
 
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: microservice-app-sa
-  namespace: production
-  annotations:
-    eks.amazonaws.com/role-arn: arn:aws:iam::${AWS_ACCOUNT_ID}:role/microservice-app-role
+  name:  __APP_NAME__-sa
+  namespace: __NAMESPACE__
 
----
-apiVersion: policy/v1
-kind: PodDisruptionBudget
-metadata:
-  name: microservice-app-pdb
-  namespace: production
-spec:
-  minAvailable: 1
-  selector:
-    matchLabels:
-      app: microservice-app
