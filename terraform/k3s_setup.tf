@@ -1,6 +1,6 @@
 # 1. Fetch Public IP for the TLS Certificate
 data "http" "my_ip" {
-  url = "ipv4.icanhazip.com"
+  url = "https://ipv4.icanhazip.com"
 }
 
 # 2. Local Setup and Manifest Application
