@@ -240,7 +240,7 @@ jobs:
 
       - name: Set up kubectl
         run: |
-          sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+          sudo cp -f /etc/kubernetes/admin.conf $HOME/.kube/config
           chmod 644 $HOME/.kube/config
           echo "KUBECONFIG=$(realpath $HOME/.kube/config)" >> $GITHUB_ENV
           
