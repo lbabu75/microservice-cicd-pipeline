@@ -1,24 +1,13 @@
-# k8s/ingress.yml
-
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: __APP_NAME__-ingress
   namespace: __NAMESPACE__
   annotations:
-    kubernetes.io/ingress.class: alb
-    alb.ingress.kubernetes.io/scheme: internet-facing
-    alb.ingress.kubernetes.io/target-type: ip
-    alb.ingress.kubernetes.io/healthcheck-path: /health
-    alb.ingress.kubernetes.io/healthcheck-interval-seconds: '15'
-    alb.ingress.kubernetes.io/healthcheck-timeout-seconds: '5'
-    alb.ingress.kubernetes.io/success-codes: '200'
-    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
-    alb.ingress.kubernetes.io/ssl-redirect: '443'
-    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:${AWS_REGION}:${AWS_ACCOUNT_ID}:certificate/xxx
-    alb.ingress.kubernetes.io/group.name: microservices
-    alb.ingress.kubernetes.io/tags: Environment=__NAMESPACE__,Application=__APP_NAME__
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/ssl-redirect: "false" 
 spec:
+  ingressClassName: nginx # Changed from 'alb' to 'nginx'
   rules:
   - host: api.example.com
     http:
@@ -30,3 +19,4 @@ spec:
             name: __APP_NAME__
             port:
               number: 80
+
